@@ -8,7 +8,12 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QApplication, QLabel, QMenu, QWidget
 
 
-ROOT = Path(__file__).resolve().parents[1]
+# PyInstaller stores bundled files under _MEIPASS. During normal development,
+# use the repository root instead.
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    ROOT = Path(sys._MEIPASS)
+else:
+    ROOT = Path(__file__).resolve().parents[1]
 MESSAGES_FILE = ROOT / "messages" / "messages.json"
 
 
