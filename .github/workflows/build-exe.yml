@@ -30,13 +30,25 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Check optional assets
+      - name: Extract Bonzi sprite archive
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem -Path . -Filter '*.zip' -File | Where-Object { $_.Name -like '*Bonzi*' } | Select-Object -First 1
+          if ($null -eq $zip) {
+            Write-Host 'No Bonzi sprite archive found; continuing without sprite extraction.'
+            exit 0
+          }
+          New-Item -ItemType Directory -Force -Path assets\sprites | Out-Null
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath assets\sprites -Force
+          Write-Host "Extracted $($zip.Name) into assets\sprites"
+
+      - name: Check assets
         shell: pwsh
         run: |
           if (Test-Path "assets") {
-            Write-Host "Assets directory found."
+            Get-ChildItem assets -Recurse -File | Select-Object FullName
           } else {
-            Write-Host "No assets directory yet; building without it."
+            Write-Host "No assets directory found."
           }
 
       - name: Build executable
