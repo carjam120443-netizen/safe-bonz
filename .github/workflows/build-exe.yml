@@ -28,9 +28,28 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build executable
+      - name: Check optional assets
+        shell: pwsh
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed --name SafeBonz --add-data "messages;messages" --add-data "assets;assets" src/main.py
+          if (Test-Path "assets") {
+            Write-Host "Assets directory found."
+          } else {
+            Write-Host "No assets directory yet; building without it."
+          }
+
+      - name: Build executable
+        shell: pwsh
+        run: |
+          $args = @(
+            '--noconfirm', '--clean', '--onefile', '--windowed',
+            '--name', 'SafeBonz',
+            '--add-data', 'messages;messages',
+            'src/main.py'
+          )
+          if (Test-Path "assets") {
+            $args += @('--add-data', 'assets;assets')
+          }
+          pyinstaller @args
 
       - name: Upload executable artifact
         uses: actions/upload-artifact@v4
