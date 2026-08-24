@@ -30,7 +30,7 @@ jobs:
 
       - name: Build executable
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed --name SafeBonz --add-data "messages;messages" src/main.py
+          pyinstaller --noconfirm --clean --onefile --windowed --name SafeBonz --add-data "messages;messages" --add-data "assets;assets" src/main.py
 
       - name: Upload executable artifact
         uses: actions/upload-artifact@v4
