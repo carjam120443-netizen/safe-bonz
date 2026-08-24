@@ -16,7 +16,7 @@ MESSAGES_FILE = ROOT / "messages" / "messages.json"
 
 
 class SafeBonz(QWidget):
-    """Original animated Safe Bonz desktop pet."""
+    """Original purple desktop assistant inspired by classic desktop pets."""
 
     def __init__(self):
         super().__init__()
@@ -24,17 +24,14 @@ class SafeBonz(QWidget):
         self.dragging = False
         self.muted = False
         self.paused = False
+        self.leaving = False
         self.frame = 0
         self.expression = "normal"
         self.message = "Hi! I'm Safe Bonz!"
 
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint
-            | Qt.WindowType.WindowStaysOnTopHint
-            | Qt.WindowType.Tool
-        )
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setFixedSize(200, 250)
+        self.setFixedSize(220, 275)
 
         self.anim_timer = QTimer(self)
         self.anim_timer.timeout.connect(self.animate)
@@ -50,12 +47,11 @@ class SafeBonz(QWidget):
             self.update()
 
     def random_message(self):
-        if self.muted or self.paused:
+        if self.muted or self.paused or self.leaving:
             return
         try:
             data = json.loads(MESSAGES_FILE.read_text(encoding="utf-8"))
-            messages = data.get("messages", ["Hi!"])
-            self.message = random.choice(messages)
+            self.message = random.choice(data.get("messages", ["Hi!"]))
         except (OSError, json.JSONDecodeError):
             self.message = "Hi! 👋"
         self.expression = "happy"
@@ -63,7 +59,7 @@ class SafeBonz(QWidget):
         self.update()
 
     def reset_expression(self):
-        if not self.dragging:
+        if not self.dragging and not self.leaving:
             self.expression = "normal"
             self.update()
 
@@ -74,63 +70,77 @@ class SafeBonz(QWidget):
         # Speech bubble
         p.setPen(QPen(Qt.GlobalColor.black, 2))
         p.setBrush(Qt.GlobalColor.white)
-        p.drawRoundedRect(7, 7, 186, 65, 13, 13)
+        p.drawRoundedRect(7, 7, 206, 68, 13, 13)
         p.setFont(QFont("Arial", 9))
         p.setPen(Qt.GlobalColor.black)
-        p.drawText(17, 17, 166, 45, Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignCenter, self.message)
+        p.drawText(17, 17, 186, 48, Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignCenter, self.message)
 
-        # Original purple mascot body
+        # Original purple desktop-assistant sprite: large head, ears, suit-like body,
+        # expressive face and waving hands. It is not a copy of any existing sprite.
         bob = 3 if self.frame % 8 in (1, 2, 3, 7) else 0
         if self.dragging:
             bob += 5 if self.frame % 2 else -2
+        cx, cy = 110, 157 + bob
 
-        cx, cy = 100, 155 + bob
+        # Body / jacket silhouette
         p.setPen(QPen(Qt.GlobalColor.black, 3))
         p.setBrush(Qt.GlobalColor.darkMagenta)
-        p.drawEllipse(cx - 63, cy - 72, 126, 112)
+        p.drawRoundedRect(cx - 55, cy + 25, 110, 72, 28, 28)
         p.setBrush(Qt.GlobalColor.magenta)
-        p.drawEllipse(cx - 51, cy - 56, 102, 90)
+        p.drawEllipse(cx - 62, cy - 72, 124, 108)
 
         # Ears
         p.setBrush(Qt.GlobalColor.darkMagenta)
-        p.drawEllipse(cx - 68, cy - 35, 25, 35)
-        p.drawEllipse(cx + 43, cy - 35, 25, 35)
+        p.drawEllipse(cx - 72, cy - 35, 27, 38)
+        p.drawEllipse(cx + 45, cy - 35, 27, 38)
 
         # Eyes
         p.setBrush(Qt.GlobalColor.white)
-        p.drawEllipse(cx - 31, cy - 34, 25, 31)
-        p.drawEllipse(cx + 6, cy - 34, 25, 31)
+        p.drawEllipse(cx - 34, cy - 35, 27, 33)
+        p.drawEllipse(cx + 7, cy - 35, 27, 33)
         p.setBrush(Qt.GlobalColor.black)
         eye_shift = 0
         if self.dragging:
-            eye_shift = 5 if self.frame % 2 else -5
-        p.drawEllipse(cx - 22 + eye_shift, cy - 25, 9, 14)
-        p.drawEllipse(cx + 15 + eye_shift, cy - 25, 9, 14)
+            eye_shift = 6 if self.frame % 2 else -6
+        p.drawEllipse(cx - 24 + eye_shift, cy - 26, 10, 15)
+        p.drawEllipse(cx + 17 + eye_shift, cy - 26, 10, 15)
 
-        # Nose
-        p.drawEllipse(cx - 7, cy - 3, 14, 10)
+        # Muzzle and nose
+        p.setBrush(Qt.GlobalColor.lightGray)
+        p.drawEllipse(cx - 35, cy - 2, 70, 45)
+        p.setBrush(Qt.GlobalColor.black)
+        p.drawEllipse(cx - 8, cy + 2, 16, 11)
 
-        # Mouth / expression
         if self.expression == "surprised":
-            p.drawEllipse(cx - 10, cy + 9, 20, 27)
+            p.drawEllipse(cx - 11, cy + 14, 22, 29)
         elif self.expression == "happy":
-            p.drawArc(cx - 28, cy + 4, 56, 36, 200 * 16, 140 * 16)
+            p.drawArc(cx - 27, cy + 10, 54, 32, 200 * 16, 140 * 16)
         else:
-            p.drawArc(cx - 24, cy + 3, 48, 30, 200 * 16, 140 * 16)
+            p.drawArc(cx - 24, cy + 9, 48, 28, 200 * 16, 140 * 16)
 
-        # Arms react while being dragged.
-        arm_wave = 10 if self.frame % 4 < 2 else -5
-        p.setPen(QPen(Qt.GlobalColor.black, 7))
-        p.drawLine(cx - 48, cy + 30, cx - 76, cy + 55 + (arm_wave if self.dragging else 0))
-        p.drawLine(cx + 48, cy + 30, cx + 76, cy + 55 - (arm_wave if self.dragging else 0))
+        # Tie / collar accent
+        p.setBrush(Qt.GlobalColor.darkBlue)
+        p.drawPolygon([cx - 13, cy + 27, cx + 13, cy + 27, cx + 7, cy + 45, cx, cy + 55, cx - 7, cy + 45])
+        p.setBrush(Qt.GlobalColor.white)
+        p.drawPolygon([cx - 25, cy + 25, cx, cy + 38, cx - 7, cy + 49, cx - 30, cy + 32])
+        p.drawPolygon([cx + 25, cy + 25, cx, cy + 38, cx + 7, cy + 49, cx + 30, cy + 32])
 
-        # Feet shuffle during idle / dragging.
+        # Arms / hands
+        wave = 12 if self.frame % 4 < 2 else -5
+        p.setPen(QPen(Qt.GlobalColor.black, 8))
+        p.drawLine(cx - 50, cy + 45, cx - 82, cy + 72 + (wave if self.dragging else 0))
+        p.drawLine(cx + 50, cy + 45, cx + 82, cy + 72 - (wave if self.dragging else 0))
+        p.setBrush(Qt.GlobalColor.magenta)
+        p.drawEllipse(cx - 94, cy + 65 + (wave if self.dragging else 0), 25, 25)
+        p.drawEllipse(cx + 69, cy + 65 - (wave if self.dragging else 0), 25, 25)
+
+        # Feet
         step = 7 if self.frame % 4 < 2 else -7
         if self.dragging:
             step *= 2
-        p.setPen(QPen(Qt.GlobalColor.black, 5))
-        p.drawLine(cx - 27, cy + 42, cx - 36 + step, cy + 70)
-        p.drawLine(cx + 27, cy + 42, cx + 36 - step, cy + 70)
+        p.setPen(QPen(Qt.GlobalColor.black, 7))
+        p.drawLine(cx - 25, cy + 92, cx - 38 + step, cy + 115)
+        p.drawLine(cx + 25, cy + 92, cx + 38 - step, cy + 115)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -159,13 +169,28 @@ class SafeBonz(QWidget):
         self.drag_offset = None
         event.accept()
 
+    def leave_desktop(self):
+        if self.leaving:
+            return
+        self.leaving = True
+        self.anim_timer.stop()
+        self.message = random.choice([
+            "Aww, you're sending me away already? Bye! 👋",
+            "Okay! I'll get outta here. See you later! 🫡",
+            "Goodbye! Safe Bonz is leaving the desktop! 💜",
+            "Fineee, I'm leaving! Don't forget me! 😭"
+        ])
+        self.expression = "sad"
+        self.update()
+        QTimer.singleShot(2500, QApplication.quit)
+
     def show_menu(self, position):
         menu = QMenu(self)
         pause_action = menu.addAction("Resume" if self.paused else "Pause")
         mute_action = menu.addAction("Unmute" if self.muted else "Mute")
         say_action = menu.addAction("Say something")
         menu.addSeparator()
-        exit_action = menu.addAction("Exit Safe Bonz")
+        exit_action = menu.addAction("Leave desktop")
         action = menu.exec(position)
 
         if action == pause_action:
@@ -180,7 +205,7 @@ class SafeBonz(QWidget):
         elif action == say_action:
             self.random_message()
         elif action == exit_action:
-            QApplication.quit()
+            self.leave_desktop()
 
 
 def main():
